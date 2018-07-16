@@ -1,5 +1,5 @@
 /**
- *  Multi-factor Unlock
+ *  Multi-factor Action
  *
  *  Copyright 2018 SplitInfinity
  *
@@ -17,7 +17,7 @@
  * Icon List: http://scripts.3dgo.net/smartthings/icons/
  */
 definition(
-    name: "Multi-factor Unlock",
+    name: "Multi-factor Action",
     namespace: "SplitInfinity8",
     author: "SplitInfinity8",
     description: "",
@@ -27,16 +27,83 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@2x.png")
 
 preferences {
-  section("When this presence sensor is home") {
-      input "openSensor", "capability.contactSensor", title: "Select Contact", required: true
+  section("When this presence sensor is home (within X minutes)") {
+      input "presence1", "capability.precenseSensor", title: "Select Contact", required: true
+      input "presencemin", "decimal", title: "Minutes?", defaultValue: "1"
   }
-  section("AND this door opens") {
-      input "openSensor", "capability.contactSensor", title: "Select Contact", required: true
+  section("AND this door / contact sensor opens (within X minutes)") {
+      input "contact1", "capability.contactSensor", title: "Select Contact", required: true
+      input "contactmin", "decimal", title: "Minutes?", defaultValue: "1"
   }
-  section("Unlock this door") {
-      input "doorLock", "capability.lock", title: "Select Lock", required: true
-	}
-  section("Check for both factors for up to this many minutes") {
-    	input "minutes", "decimal", title: "Minutes?", defaultValue: "1"
+//  section("Check for both factors for up to this many minutes") {
+//    	input "minutes", "decimal", title: "Minutes?", defaultValue: "1"
+//  }
+
+// DO THIS
+section("Unlock this door") {
+      input "lock1", "capability.lock", title: "Select Lock", required: true
+  }
+  section( "Push notification?" ) {
+		input "sendPushMessage", "enum", title: "Send push notification?", metadata:[values:["Yes", "No"]], required: false
+  }
+  section( "Text message?" ) {
+    	input "sendText", "enum", title: "Send text message notification?", metadata:[values:["Yes", "No"]], required: false
+       	input "phoneNumber", "phone", title: "Enter phone number:", required: false
   }
 }
+
+def installed(){
+//    initialize()
+}
+
+def updated(){
+//    unsubscribe()
+//    unschedule()
+//    initialize()
+}
+
+def initialize(){
+//    log.debug "Settings: ${settings}"
+    subscribe(lock1, "lock", doorHandler, [filterEvents: false])
+    subscribe(lock1, "unlock", doorHandler, [filterEvents: false])  
+    subscribe(contact1, "contact.open", doorHandler)
+    subscribe(contact1, "contact.closed", doorHandler)
+}
+
+
+def unlockDoor(){
+	log.debug "About to unlock the door."
+	if (lock1.latestValue("lock") == "locked")
+    	{
+    		log.debug "Unlocking $lock1..."
+    		lock1.unlock()
+        	log.debug ("Sending Push Notification...") 
+    		if (sendPushMessage != "No") sendPush("$lock1 unlocked after $contact1 was open for $secondsLater seconds(s)!")
+    		log.debug("Sending text message...")
+		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 unlocked after $contact1 was open for $secondsLater seconds(s)!")        
+        }
+	else if (lock1.latestValue("lock") == "unlocked")
+    	{
+        log.debug "$lock1 was already unlocked..."
+        }
+}
+
+def lockDoor(){
+	if (lock1.latestValue("lock") == "unlocked")
+    	{
+    		log.debug "Locking $lock1..."
+    		lock1.lock()
+        	log.debug ("Sending Push Notification...") 
+    		if (sendPushMessage != "No") sendPush("$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
+    		log.debug("Sending text message...")
+		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
+        }
+	else if (lock1.latestValue("lock") == "locked")
+    	{
+        log.debug "$lock1 was already locked..."
+        }
+}
+
+
+
+
