@@ -53,21 +53,21 @@ section("Unlock this door") {
 }
 
 def installed(){
-//    initialize()
+    initialize()
 }
 
 def updated(){
-//    unsubscribe()
+    unsubscribe()
 //    unschedule()
-//    initialize()
+    initialize()
 }
 
 def initialize(){
-//    log.debug "Settings: ${settings}"
-    subscribe(lock1, "lock", doorHandler, [filterEvents: false])
-    subscribe(lock1, "unlock", doorHandler, [filterEvents: false])  
-    subscribe(contact1, "contact.open", doorHandler)
-    subscribe(contact1, "contact.closed", doorHandler)
+    log.debug "Settings: ${settings}"
+    subscribe(lock1, "lock", actionLogic, [filterEvents: false])
+    subscribe(lock1, "unlock", actionLogic, [filterEvents: false])  
+    subscribe(contact1, "contact.open", actionLogic)
+    subscribe(contact1, "contact.closed", actionLogic)
 }
 
 
@@ -78,9 +78,9 @@ def unlockDoor(){
     		log.debug "Unlocking $lock1..."
     		lock1.unlock()
         	log.debug ("Sending Push Notification...") 
-    		if (sendPushMessage != "No") sendPush("$lock1 unlocked after $contact1 was open for $secondsLater seconds(s)!")
+    		if (sendPushMessage != "No") sendPush("$lock1 unlocked! Multi-factor action.")
     		log.debug("Sending text message...")
-		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 unlocked after $contact1 was open for $secondsLater seconds(s)!")        
+		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 unlocked! Multi-factor action.")        
         }
 	else if (lock1.latestValue("lock") == "unlocked")
     	{
@@ -105,5 +105,49 @@ def lockDoor(){
 }
 
 
+/**  PSEUDO CODE
+--Monitor
+*Presence (within X minutes)
+*Contact (within X minutes)
+Lock (within X minutes)
+Motion (within X minutes)
 
+if (all selected monitoring sensors within time frame){
+    DO
+    	Each selected action:
+		Unlock or lock door
+		Turn on lights
+		Push / Text an alert
+}
+
+
+
+*/
+
+
+
+def actionLogic(evt)
+{
+    if ((contact1.latestValue("contact") == "open"))
+    {
+    //if ((contact1.latestValue("contact") == "open") && (evt.value == "locked"))
+    //else if ((contact1.latestValue("contact") == "open") && (evt.value == "unlocked"))
+        unschedule (lockDoor)
+    	log.debug "Door left open, set timer to send a warning!"
+        def delay = (openMinutesLater * 60)
+        runIn (delay, alertOpenDoor)
+    }
+    else if ((contact1.latestValue("contact") == "closed") && (evt.value == "locked"))
+    {
+	//Door already locked, unschedule pending lock.
+	unschedule (alertOpenDoor)
+        unschedule (lockDoor)
+    }   
+    else
+    {
+        log.debug "Problem with $lock1, the lock might be jammed!"
+        unschedule (lockDoor)
+        unschedule (alertDoorOpen)
+    }
+}
 
