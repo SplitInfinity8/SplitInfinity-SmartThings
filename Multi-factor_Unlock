@@ -40,9 +40,12 @@ preferences {
 //  }
 
 // DO THIS
-section("Unlock this door") {
+  section("Unlock this door") {
       input "lock1", "capability.lock", title: "Select Lock", required: true
   }
+  //section("Only during these hours"){
+  
+  //}
   section( "Push notification?" ) {
 		input "sendPushMessage", "enum", title: "Send push notification?", metadata:[values:["Yes", "No"]], required: false
   }
@@ -112,6 +115,9 @@ def lockDoor(){
 Lock (within X minutes)
 Motion (within X minutes)
 
+Monitor presence -> trigger handler -> Record time of presence change -> call main logic function
+Monitor contact (garage) -> trigger handler -> record time of state change -> call main logic function
+
 if (all selected monitoring sensors within time frame){
     DO
     	Each selected action:
@@ -151,3 +157,43 @@ def actionLogic(evt)
     }
 }
 
+/**
+
+****************EXAMPLE CODE TO STORE TO STATE
+
+def contactHandler(evt) {
+	if("closed" == evt.value){
+    	log.debug "ContactHandler called: $evt"
+   		state.doorClosed = ${evt.date.time}
+    }
+    else {
+        // Door Opened; just log it and do nothing
+        log.debug "Door was opened."
+    }
+}
+
+def motionStoppedHandler(evt) {
+    log.debug "motionStoppedHandler called: $evt"
+
+    if(state.doorClosed == null) {
+          log.debug "state.doorClosed is null, exiting..."
+          return
+    }
+
+    def motionStopped = ${evt.date.time}
+    def elapsed = motionStopped - state.doorClosed
+    def threshold = 1000 * seconds
+    
+    if (elapsed <= threshold) {
+    	log.debug "Time between door close and motion stop ($elapsed ms):  turning switch off"
+        theswitch.off()
+    }
+    else {
+        // Motion active; just log it and do nothing
+        log.debug "Motion is active, do nothing."
+    }       
+}
+
+
+
+*/
