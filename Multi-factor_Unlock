@@ -28,8 +28,9 @@ definition(
 
 preferences {
   section("When this presence sensor is home (within X minutes)") {
-      input "presence1", "capability.precenseSensor", title: "Select Contact", required: true
-      input "presencemin", "decimal", title: "Minutes?", defaultValue: "1"
+      input "presence1", "capability.presenseSensor", title: "Select Contact", required: true
+      input "presencemin", "decimal", title: "Minutes?", defaultValue: "5"
+      //radio button - arrived / left?
   }
   section("AND this door / contact sensor opens (within X minutes)") {
       input "contact1", "capability.contactSensor", title: "Select Contact", required: true
@@ -41,10 +42,14 @@ preferences {
 
 // DO THIS
   section("Unlock this door") {
-      input "lock1", "capability.lock", title: "Select Lock", required: true
+      input "lock1", "capability.lock", title: "Select Lock", required: false
+      //Add Lock or Unlock radio button?
   }
+  //section("Turn these lights on or off"){
+    //Lights / Level / Color / on-off
+  //}
   //section("Only during these hours"){
-  
+    //add only when in this mode?
   //}
   section( "Push notification?" ) {
 		input "sendPushMessage", "enum", title: "Send push notification?", metadata:[values:["Yes", "No"]], required: false
@@ -67,11 +72,22 @@ def updated(){
 
 def initialize(){
     log.debug "Settings: ${settings}"
-    subscribe(lock1, "lock", actionLogic, [filterEvents: false])
-    subscribe(lock1, "unlock", actionLogic, [filterEvents: false])  
-    subscribe(contact1, "contact.open", actionLogic)
-    subscribe(contact1, "contact.closed", actionLogic)
+    subscribe(lock1, "lock", lockHandler, [filterEvents: false])
+    subscribe(lock1, "unlock", lockHandler, [filterEvents: false])  
+    subscribe(contact1, "contact.open", contactHandler)
+    subscribe(contact1, "contact.closed", contactHandler)
+    subscribe(presence1, "presence", presenceHandler)
 }
+
+//Change to monitor multiple presence sensors?
+//        input "people", "capability.presenceSensor", multiple: true
+//    for (person in people) {
+//        if (person.currentPresence == "present") {
+            // someone is present, so set our result variable to false and terminate the loop.
+//            result = false
+//            break
+//        }
+//    }
 
 
 def unlockDoor(){
@@ -107,22 +123,30 @@ def lockDoor(){
         }
 }
 
+//Checking elapsed time on a presence sensor...
+//        def threshold = 1000 * 60 * findFalseAlarmThreshold() - 1000
+//        def awayLongEnough = people.findAll { person ->
+//            def presenceState = person.currentState("presence")
+//            def elapsed = now() - presenceState.rawDateCreated.time
+//            elapsed >= threshold
+
 
 /**  PSEUDO CODE
 --Monitor
 *Presence (within X minutes)
 *Contact (within X minutes)
-Lock (within X minutes)
+Lock (within X minutes, code unlock?? - IE Disarm alarm?)
 Motion (within X minutes)
 
 Monitor presence -> trigger handler -> Record time of presence change -> call main logic function
 Monitor contact (garage) -> trigger handler -> record time of state change -> call main logic function
 
-if (all selected monitoring sensors within time frame){
+Is contact sensor selected?  Is presence sensor selected?  Is motion sensor selected?
+if (all selected monitoring sensors within their time frame){
     DO
     	Each selected action:
-		Unlock or lock door
-		Turn on lights
+		Unlock or lock door (If not already unlocked or locked.)
+		Turn on lights / or set level / or set color
 		Push / Text an alert
 }
 
@@ -160,15 +184,37 @@ def actionLogic(evt)
 /**
 
 ****************EXAMPLE CODE TO STORE TO STATE
+//   	state.contactTime = ${evt.date.time}
+****************EXAMPLE CODE TO RETRIEVE STATE
+//    if(state.doorClosed == null) {
 
 def contactHandler(evt) {
-	if("closed" == evt.value){
-    	log.debug "ContactHandler called: $evt"
-   		state.doorClosed = ${evt.date.time}
+    if("closed" == evt.value){
+    	log.debug "ContactHandler called: $evt (closed)"
+   	state.contactTime = ${evt.date.time}
+	state.contactLastState = "closed"
     }
     else {
-        // Door Opened; just log it and do nothing
-        log.debug "Door was opened."
+        log.debug "contactHandler called: $evt (opened)"
+	state.contactTime = ${evt.date.time}
+	state.contactLastState = "open"
+    }
+}
+
+def presenceHandler(evt) {
+    log.debug "presenceHandler called: $evt"
+    if(evt.value == "not present"){
+	def presenceState = presence1.currentState("presence")
+	//def elapsed = now() - presenceState.rawDateCreated.time
+	state.presenceTime = presenceState.rawDateCreated.time
+	state.contactLastState = "not present"
+    }
+    else {
+    	//Present - set appropriate states...
+	def presenceState = presence1.currentState("presence")
+	//def elapsed = now() - presenceState.rawDateCreated.time
+	state.presenceTime = presenceState.rawDateCreated.time
+	state.contactLastState = "present"
     }
 }
 
