@@ -27,47 +27,55 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@2x.png")
 
 preferences {
-  section("Enable this app?") {
+  section("Enable this app?"){
 	input "enableApp", "enum", title: "Do you wish to enable this app?", metadata:[values:["Yes", "No"]], required: true, defaultValue: "Yes"
   }
 
-  section("When this presence sensor is home (within X minutes)") {
+section("When this presence sensor is home (within X minutes)"){
       input "presence1", "capability.presenseSensor", title: "Select presence sensor", required: false
       input "presencemin", "decimal", title: "Minutes?", defaultValue: "5"
       //radio button - arrived / left?
   }
-  section("AND this door / contact sensor opens (within X minutes)") {
+  section("AND this door / contact sensor opens (within X minutes)"){
       input "contact1", "capability.contactSensor", title: "Select Contact", required: false
       input "contactmin", "decimal", title: "Minutes?", defaultValue: "1"
   }
-//  section("Check for both factors for up to this many minutes") {
+
+  section("AND this door unlocks (within X minutes)"){
+      input "lock1", "capability.lock", title: "Select Lock", required: false
+      input "lockmin", "decimal", title: "Minutes?", defaultValue: "1"
+      //Add Lock or Unlock radio button?
+  }
+//  section("Check for both factors for up to this many minutes"){
 //    	input "minutes", "decimal", title: "Minutes?", defaultValue: "1"
 //  }
 
-  section("Prevent duplicate executions") {
-    	input "execTimes", "decimal", title: "Execute this many times?", defaultValue: "1"
-    	input "limitExecMinutes", "decimal", title: "Within this many minutes?", defaultValue: "1"
+  section("Prevent duplicate executions"){
+    	input "execTimes", "decimal", title: "Execute an action this many times?", defaultValue: "1"
+    	input "limitExecMinutes", "decimal", title: "Within this many minutes?", defaultValue: "5"
   }
 
 
 // DO THIS
-  section("Unlock this door") {
-      input "lock1", "capability.lock", title: "Select Lock", required: false
+  section("Unlock this lock!"){
+      input "actionlock1", "capability.lock", title: "Select Lock", required: false
       //Add Lock or Unlock radio button?
   }
-  //section("Turn these lights on or off"){
+  section("Turn these lights on or off"){
     //Lights / Level / Color / on-off
-  //}
+  }
   //section("Only during these hours"){
     //add only when in this mode?
   //}
-  section( "Push notification?" ) {
-		input "sendPushMessage", "enum", title: "Send push notification?", metadata:[values:["Yes", "No"]], required: false
+  section("Push notification?"){
+        input "sendPushMessage", "enum", title: "Send push notification?", metadata:[values:["Yes", "No"]], required: true, defaultValue: "Yes"
   }
-  section( "Text message?" ) {
-    	input "sendText", "enum", title: "Send text message notification?", metadata:[values:["Yes", "No"]], required: false
-       	input "phoneNumber", "phone", title: "Enter phone number:", required: false
-  }
+
+//  section( "Text message?" ) {
+//    	input "sendText", "enum", title: "Send text message notification?", metadata:[values:["Yes", "No"]], required: false
+//       	input "phoneNumber", "phone", title: "Enter phone number:", required: false
+//  }
+
 }
 
 def installed(){
@@ -81,17 +89,19 @@ def updated(){
 }
 
 def initialize(){
-    log.debug "Settings: ${settings}"
+    //log.debug "Settings: ${settings}"
+    state.lastExecution = "pending"
+    state.contactLastState = "pending"
+    state.contactTime = "pending"
+    state.lockLastState = "pending"
+    state.lockTime = "pending"
+    state.presenceLastState = "pending"
+    state.presenceTime = "pending"
     subscribe(lock1, "lock", lockHandler, [filterEvents: false])
     subscribe(lock1, "unlock", lockHandler, [filterEvents: false])  
     subscribe(contact1, "contact.open", contactHandler)
     subscribe(contact1, "contact.closed", contactHandler)
     subscribe(presence1, "presence", presenceHandler)
-    state.lastExecution = "pending"
-    state.contactLastState = "pending"
-    state.contactTime = "pending"
-    state.presenceTime = "pending"
-    state.contactLastState = "pending"
 }
 
 //Change to monitor multiple presence sensors?
@@ -198,9 +208,16 @@ if (all selected monitoring sensors within their time frame){
     }
 */
 
-def actionLogic()
-{
-    sendPush("action Logic - Test Message $lock1 $contact1: ${state.contactLastState} $presence1")
+def actionLogic(){
+	//minSinceLastExec = currentTime - lastExecution
+    if(enableApp == "Yes"){
+    //AND IF ~execMinutes < minSinceLastExec
+        //def contactLastState = state.contactLastState
+        sendPush("action Logic - $contact1: ${state.contactLastState} ${state.contactTime} - $lock1 ${state.lockLastState} - $presence1 ${state.presenceLastState}")
+        //if all monitored devices are in the correct state and time frame
+        //Then do this
+            //Set state.lastExecution = current time
+    }
 }
 
 //****************EXAMPLE CODE TO STORE TO STATE
@@ -208,38 +225,48 @@ def actionLogic()
 //****************EXAMPLE CODE TO RETRIEVE STATE
 //    if(state.doorClosed == null) {
 
-def lockHandler(evt) {
+def lockHandler(evt){
+    if(evt.value == "locked"){
+        //sendPush("contact Closed")
+        state.lockLastState = "locked"
+        //state.lockTime = ${evt.date.time}
+    }
+    else {
+        //sendPush("open")
+        state.lockLastState = "open"
+        //state.lockTime = ${evt.date.time}
+    }
     actionLogic()
 }
 
-def contactHandler(evt) {
-    actionLogic()
+def contactHandler(evt){
     if(evt.value == "closed"){
-        sendPush("contact Closed")
+        //sendPush("contact Closed")
         state.contactLastState = "closed"
-        state.contactTime = ${evt.date.time}
+        //state.contactTime = ${evt.date.time}
     }
     else {
-        sendPush("contact Open")
+        //sendPush("open")
         state.contactLastState = "open"
-        state.contactTime = ${evt.date.time}
+        //state.contactTime = ${evt.date.time}
     }
+    actionLogic()
 }
 
 def presenceHandler(evt) {
-    log.debug "presenceHandler called: $evt"
+    //log.debug "presenceHandler called: $evt"
     if(evt.value == "not present"){
-	def presenceState = presence1.currentState("presence")
-	//def elapsed = now() - presenceState.rawDateCreated.time
-	state.presenceTime = presenceState.rawDateCreated.time
-	state.contactLastState = "not present"
+	    //state.presenceState = presence1.currentState("presence")
+	    //def elapsed = now() - presenceState.rawDateCreated.time
+        //state.presenceTime = presenceState.rawDateCreated.time
+        state.presenceLastState = "not present"
     }
-    else {
+    else{
     	//Present - set appropriate states...
-	def presenceState = presence1.currentState("presence")
-	//def elapsed = now() - presenceState.rawDateCreated.time
-	state.presenceTime = presenceState.rawDateCreated.time
-	state.contactLastState = "present"
+	    //presenceState = presence1.currentState("presence")
+	    //def elapsed = now() - presenceState.rawDateCreated.time
+	    //state.presenceTime = presenceState.rawDateCreated.time
+	    state.contactLastState = "present"
     }
     actionLogic()
 }
