@@ -28,12 +28,12 @@ definition(
 
 preferences {
   section("When this presence sensor is home (within X minutes)") {
-      input "presence1", "capability.presenseSensor", title: "Select Contact", required: true
+      input "presence1", "capability.presenseSensor", title: "Select presence sensor", required: false
       input "presencemin", "decimal", title: "Minutes?", defaultValue: "5"
       //radio button - arrived / left?
   }
   section("AND this door / contact sensor opens (within X minutes)") {
-      input "contact1", "capability.contactSensor", title: "Select Contact", required: true
+      input "contact1", "capability.contactSensor", title: "Select Contact", required: false
       input "contactmin", "decimal", title: "Minutes?", defaultValue: "1"
   }
 //  section("Check for both factors for up to this many minutes") {
@@ -96,7 +96,7 @@ def unlockDoor(){
     	{
     		log.debug "Unlocking $lock1..."
     		lock1.unlock()
-        	log.debug ("Sending Push Notification...") 
+        	log.debug ("Sending Push Notification...")
     		if (sendPushMessage != "No") sendPush("$lock1 unlocked! Multi-factor action.")
     		log.debug("Sending text message...")
 		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 unlocked! Multi-factor action.")        
@@ -156,10 +156,6 @@ if (all selected monitoring sensors within their time frame){
 
 
 
-def actionLogic()
-{
-
-    if (sendPushMessage != "No") sendPush("Test Message $lock1 $contact1 $presence1")
     //if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
  
 
@@ -186,25 +182,34 @@ def actionLogic()
         unschedule (alertDoorOpen)
     }
 */
+
+def actionLogic()
+{
+    //def contactLastState = state.contactLastState
+    sendPush("action Logic - Test Message $lock1 $contact1: ${state.contactLastState} $presence1")
 }
 
-****************EXAMPLE CODE TO STORE TO STATE
+//****************EXAMPLE CODE TO STORE TO STATE
 //   	state.contactTime = ${evt.date.time}
-****************EXAMPLE CODE TO RETRIEVE STATE
+//****************EXAMPLE CODE TO RETRIEVE STATE
 //    if(state.doorClosed == null) {
 
+def lockHandler(evt) {
+    actionLogic()
+}
+
 def contactHandler(evt) {
-    if("closed" == evt.value){
-    	log.debug "ContactHandler called: $evt (closed)"
-   	state.contactTime = ${evt.date.time}
-	state.contactLastState = "closed"
+    actionLogic()
+    if(evt.value == "closed"){
+        sendPush("contact Closed")
+        state.contactLastState = "closed"
+        state.contactTime = ${evt.date.time}
     }
     else {
-        log.debug "contactHandler called: $evt (opened)"
-	state.contactTime = ${evt.date.time}
-	state.contactLastState = "open"
+        sendPush("contact Open")
+        state.contactLastState = "open"
+        state.contactTime = ${evt.date.time}
     }
-    actionLogic
 }
 
 def presenceHandler(evt) {
@@ -222,7 +227,7 @@ def presenceHandler(evt) {
 	state.presenceTime = presenceState.rawDateCreated.time
 	state.contactLastState = "present"
     }
-    actionLogic
+    actionLogic()
 }
 
 /*
