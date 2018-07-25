@@ -27,6 +27,10 @@ definition(
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@2x.png")
 
 preferences {
+  section("Enable this app?") {
+	input "enableApp", "enum", title: "Do you wish to enable this app?", metadata:[values:["Yes", "No"]], required: true, defaultValue: "Yes"
+  }
+
   section("When this presence sensor is home (within X minutes)") {
       input "presence1", "capability.presenseSensor", title: "Select presence sensor", required: false
       input "presencemin", "decimal", title: "Minutes?", defaultValue: "5"
@@ -39,6 +43,12 @@ preferences {
 //  section("Check for both factors for up to this many minutes") {
 //    	input "minutes", "decimal", title: "Minutes?", defaultValue: "1"
 //  }
+
+  section("Prevent duplicate executions") {
+    	input "execTimes", "decimal", title: "Execute this many times?", defaultValue: "1"
+    	input "limitExecMinutes", "decimal", title: "Within this many minutes?", defaultValue: "1"
+  }
+
 
 // DO THIS
   section("Unlock this door") {
@@ -77,6 +87,11 @@ def initialize(){
     subscribe(contact1, "contact.open", contactHandler)
     subscribe(contact1, "contact.closed", contactHandler)
     subscribe(presence1, "presence", presenceHandler)
+    state.lastExecution = "pending"
+    state.contactLastState = "pending"
+    state.contactTime = "pending"
+    state.presenceTime = "pending"
+    state.contactLastState = "pending"
 }
 
 //Change to monitor multiple presence sensors?
@@ -185,7 +200,6 @@ if (all selected monitoring sensors within their time frame){
 
 def actionLogic()
 {
-    //def contactLastState = state.contactLastState
     sendPush("action Logic - Test Message $lock1 $contact1: ${state.contactLastState} $presence1")
 }
 
