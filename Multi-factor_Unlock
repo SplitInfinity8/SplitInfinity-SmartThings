@@ -32,23 +32,29 @@ preferences {
   }
 
 section("When this presence sensor is home (within X minutes)"){
-      input "presence1", "capability.presenseSensor", title: "Select presence sensor", required: false
-      input "presencemin", "decimal", title: "Minutes?", defaultValue: "5"
+      input "presence1", "capability.presenceSensor", title: "Select presence sensor", required: false, multiple: false
+      input "presencemin", "decimal", title: "Minutes?", defaultValue: "5", required: true
       //radio button - arrived / left?
   }
   section("AND this door / contact sensor opens (within X minutes)"){
       input "contact1", "capability.contactSensor", title: "Select Contact", required: false
-      input "contactmin", "decimal", title: "Minutes?", defaultValue: "1"
+      input "contactmin", "decimal", title: "Minutes?", defaultValue: "1", required: true
   }
 
   section("AND this door unlocks (within X minutes)"){
       input "lock1", "capability.lock", title: "Select Lock", required: false
-      input "lockmin", "decimal", title: "Minutes?", defaultValue: "1"
+      input "lockmin", "decimal", title: "Minutes?", defaultValue: "1", required: true
       //Add Lock or Unlock radio button?
   }
-//  section("Check for both factors for up to this many minutes"){
-//    	input "minutes", "decimal", title: "Minutes?", defaultValue: "1"
-//  }
+
+  section("Set a timer and after this many minutes check for multiple criteria to execute tasks. ??????"){
+      //IE: An action trips, wait 30 minutes, and if presence is gone, no motion sensor, and no contact sensor, then close the garage.
+      input "timedaction", "decimal", title: "Minutes?", defaultValue: "1", required: true
+  }
+
+  //section("Check for both factors for up to this many minutes"){
+  // 	input "minutes", "decimal", title: "Minutes?", defaultValue: "1", required: true
+  //}
 
   section("Prevent duplicate executions"){
     	input "execTimes", "decimal", title: "Execute an action this many times?", defaultValue: "1"
@@ -155,29 +161,6 @@ def lockDoor(){
 //            def elapsed = now() - presenceState.rawDateCreated.time
 //            elapsed >= threshold
 
-
-/**  PSEUDO CODE
---Monitor
-*Presence (within X minutes)
-*Contact (within X minutes)
-Lock (within X minutes, code unlock?? - IE Disarm alarm?)
-Motion (within X minutes)
-
-Monitor presence -> trigger handler -> Record time of presence change -> call main logic function
-Monitor contact (garage) -> trigger handler -> record time of state change -> call main logic function
-
-Is contact sensor selected?  Is presence sensor selected?  Is motion sensor selected?
-if (all selected monitoring sensors within their time frame){
-    DO
-    	Each selected action:
-		Unlock or lock door (If not already unlocked or locked.)
-		Turn on lights / or set level / or set color
-		Push / Text an alert
-}
-
-
-
-*/
 
 
 
@@ -294,3 +277,27 @@ def motionStoppedHandler(evt) {
     }       
 }
 */
+
+
+/**
+****** Program layout - PSEUDO CODE ******
+--Monitor (Reverse, happened at least X minutes ago?)
+*Presence (within X minutes)
+	Monitor presence (arrival) -> trigger handler -> Record time of presence change -> call main logic function
+*Contact (within X minutes)
+	Monitor contact (garage open) -> trigger handler -> record time of state change -> call main logic function
+Lock (within X minutes, code unlock?? - IE Disarm alarm?)
+Motion (within X minutes)
+Switch (within X minutes)
+Timer (Check in 30 minutes and execute if all criteria are met, reset if action / changes.)
+
+if (all selected monitoring sensors, within each of their time frames){
+    DO
+    	Each selected action:
+		Unlock or lock door (If not already unlocked or locked.)
+		Turn on lights / or set level / or set color
+		Push / Text an alert
+}
+****** END LAYOUT ******
+*/
+
