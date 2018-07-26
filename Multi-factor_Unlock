@@ -40,6 +40,10 @@ section("Criteria - When this presence sensor is home (within X minutes)"){
       input "contact1", "capability.contactSensor", title: "Select Contact", required: false
       input "contactmin", "decimal", title: "Minutes?", defaultValue: "1", required: true
   }
+  section("Criteria AND - this motion sensor opens (within X minutes)"){
+      input "motion1", "capability.motionSensor", title: "Select Motion Sensor", required: false
+      input "motionmin", "decimal", title: "Minutes?", defaultValue: "1", required: true
+  }
 
   section("Criteria AND - this door unlocks (within X minutes)"){
       input "lock1", "capability.lock", title: "Select Lock", required: false
