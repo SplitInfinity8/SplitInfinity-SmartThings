@@ -201,7 +201,7 @@ def actionLogic(){
     
     def contactElapsed = now() - state.contactTime
     
-        sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $state.contactElapsed - $lock1 $state.lockLastState $state.lockTime - $presence1 $state.presenceLastState $state.presenceTime")
+        sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $contactElapsed - $lock1 $state.lockLastState $state.lockTime - $presence1 $state.presenceLastState $state.presenceTime")
         //if all monitored devices are in the correct state and time frame
         //Then do this
             //Set state.lastExecution = current time
