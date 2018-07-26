@@ -70,6 +70,9 @@ section("Criteria - When this presence sensor is home (within X minutes)"){
   section("Action - Turn these lights on or off"){
     //Lights / Level / Color / on-off
   }
+  section("Action - Only during these days") {
+        input "days", "enum", title: "Select Days of the Week", required: true, multiple: true, options: ["Monday": "Monday", "Tuesday": "Tuesday", "Wednesday": "Wednesday", "Thursday": "Thursday", "Friday": "Friday"]
+  }
   section("Action - Only during these hours"){
     //add only when in this mode?
   }
@@ -165,10 +168,9 @@ def lockDoor(){
  
 
 /*
-    if ((contact1.latestValue("contact") == "open"))
-    {
-    //if ((contact1.latestValue("contact") == "open") && (evt.value == "locked"))
-    //else if ((contact1.latestValue("contact") == "open") && (evt.value == "unlocked"))
+    if ((contact1.latestValue("contact") == "open")){
+        //if ((contact1.latestValue("contact") == "open") && (evt.value == "locked"))
+        //else if ((contact1.latestValue("contact") == "open") && (evt.value == "unlocked"))
         unschedule (lockDoor)
     	log.debug "Door left open, set timer to send a warning!"
         def delay = (openMinutesLater * 60)
@@ -205,15 +207,12 @@ def actionLogic(){
 //    if(state.doorClosed == null) {
 
 def contactHandler(evt){
+    state.contactTime = new Date()
     if(evt.value == "closed"){
-        //sendPush("contact Closed")
         state.contactLastState = "closed"
-        state.contactTime = "test" // ${evt.date.time}
     }
     else if(evt.value == "open"){
-        //sendPush("open")
         state.contactLastState = "open"
-        state.contactTime = "test" // ${evt.date.time}
     }
     else{
         state.contactLastState = "unknown"
