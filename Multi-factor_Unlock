@@ -26,6 +26,7 @@ definition(
     iconX2Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@2x.png",
     iconX3Url: "http://cdn.device-icons.smartthings.com/Transportation/transportation12-icn@2x.png")
 
+// ****** BEGIN PREFERENCES ****** //
 preferences {
   section("Enable this app?"){
 	input "enableApp", "enum", title: "Do you wish to enable this app?", metadata:[values:["Yes", "No"]], required: true, defaultValue: "Yes"
@@ -90,6 +91,8 @@ section("Criteria - When this presence sensor is home (within X minutes)"){
 //  }
 
 }
+// ****** END PREFERENCES ****** //
+
 
 def installed(){
     initialize()
@@ -116,6 +119,8 @@ def initialize(){
     subscribe(contact1, "contact.closed", contactHandler)
     subscribe(presence1, "presence", presenceHandler)
 }
+
+// ****** BEGIN BODY / FUNCTIONS ****** //
 
 //Change to monitor multiple presence sensors?
 //    input "people", "capability.presenceSensor", multiple: true
@@ -200,8 +205,10 @@ def actionLogic(){
     //AND IF ~execMinutes < minSinceLastExec
     
     def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
+    def presenceElapsed = ((now() - state.presenceTime) / 1000 / 60)
+    def lockElapsed = ((now() - state.lockTime) / 1000 / 60)
     
-        sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $contactElapsed - $lock1 $state.lockLastState $state.lockTime - $presence1 $state.presenceLastState $state.presenceTime")
+        sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $contactElapsed - $lock1 $state.lockLastState $state.lockTime Elapsed: $lockElapsed - $presence1 $state.presenceLastState $state.presenceTime Elapsed: $presenceElapsed")
         //if all monitored devices are in the correct state and time frame
         //Then do this
             //Set state.lastExecution = current time
@@ -292,6 +299,12 @@ def motionStoppedHandler(evt) {
 }
 */
 
+// ********************************** //
+// ****** END BODY / FUNCTIONS ****** //
+// ********************************** //
+
+
+// ****** BEGIN NOTES ****** //
 
 /**
 ****** Program layout - PSEUDO CODE ******
