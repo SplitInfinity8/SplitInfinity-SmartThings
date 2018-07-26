@@ -192,7 +192,7 @@ def actionLogic(){
     //minSinceLastExec = currentTime - lastExecution
     if(enableApp == "Yes"){
     //AND IF ~execMinutes < minSinceLastExec
-        sendPush("action Logic - $contact1: $state.contactLastState $state.contactTime - $lock1 ${state.lockLastState} - $presence1 ${state.presenceLastState}")
+        sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - $lock1 $state.lockLastState $state.lockTime - $presence1 $state.presenceLastState $state.presenceTime")
         //if all monitored devices are in the correct state and time frame
         //Then do this
             //Set state.lastExecution = current time
@@ -208,12 +208,12 @@ def contactHandler(evt){
     if(evt.value == "closed"){
         //sendPush("contact Closed")
         state.contactLastState = "closed"
-        //state.contactTime = ${evt.date.time}
+        state.contactTime = ${evt.date.time}
     }
     else if(evt.value == "open"){
         //sendPush("open")
         state.contactLastState = "open"
-        //state.contactTime = ${evt.date.time}
+        state.contactTime = ${evt.date.time}
     }
     else{
         state.contactLastState = "unknown"
@@ -233,30 +233,33 @@ def lockHandler(evt){
     if(evt.value == "locked"){
         //sendPush("contact Closed")
         state.lockLastState = "locked"
-        //state.lockTime = ${evt.date.time}
+        state.lockTime = ${evt.date.time}
     }
     else {
         //sendPush("open")
         state.lockLastState = "open"
-        //state.lockTime = ${evt.date.time}
+        state.lockTime = ${evt.date.time}
     }
     actionLogic()
 }
 
 def presenceHandler(evt) {
-    //log.debug "presenceHandler called: $evt"
+    //log.debug "presenceHandler called: $evt
+    state.presenceTime = evt.rawDateCreated.time
     if(evt.value == "not present"){
-	    //state.presenceState = presence1.currentState("presence")
-	    //def elapsed = now() - presenceState.rawDateCreated.time
-        //state.presenceTime = presenceState.rawDateCreated.time
+	//state.presenceState = presence1.currentState("presence")
+	//def elapsed = now() - presenceState.rawDateCreated.time
         state.presenceLastState = "not present"
     }
-    else{
+    else if(evt.value == "present"){
     	//Present - set appropriate states...
-	    //presenceState = presence1.currentState("presence")
-	    //def elapsed = now() - presenceState.rawDateCreated.time
-	    //state.presenceTime = presenceState.rawDateCreated.time
-	    state.contactLastState = "present"
+	//presenceState = presence1.currentState("presence")
+	//def elapsed = now() - presenceState.rawDateCreated.time
+	//state.presenceTime = presenceState.rawDateCreated.time
+	state.contactLastState = "present"
+    }
+    else{
+      state.contactLastState = "unknown"
     }
     actionLogic()
 }
