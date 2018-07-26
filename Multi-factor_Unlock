@@ -208,12 +208,12 @@ def contactHandler(evt){
     if(evt.value == "closed"){
         //sendPush("contact Closed")
         state.contactLastState = "closed"
-        state.contactTime = ${evt.date.time}
+        state.contactTime = "test" // ${evt.date.time}
     }
     else if(evt.value == "open"){
         //sendPush("open")
         state.contactLastState = "open"
-        state.contactTime = ${evt.date.time}
+        state.contactTime = "test" // ${evt.date.time}
     }
     else{
         state.contactLastState = "unknown"
@@ -233,12 +233,12 @@ def lockHandler(evt){
     if(evt.value == "locked"){
         //sendPush("contact Closed")
         state.lockLastState = "locked"
-        state.lockTime = ${evt.date.time}
+        //state.lockTime = ${evt.date.time}
     }
     else {
         //sendPush("open")
         state.lockLastState = "open"
-        state.lockTime = ${evt.date.time}
+        //state.lockTime = ${evt.date.time}
     }
     actionLogic()
 }
