@@ -204,7 +204,7 @@ def actionLogic(){
     if(enableApp == "Yes"){
     //AND IF ~execMinutes < minSinceLastExec
     
-    if(state.contactTime!="pending"){
+    if(state.contactTime>1){
       def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
     }
 //    else{
