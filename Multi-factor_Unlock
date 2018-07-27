@@ -204,9 +204,9 @@ def actionLogic(){
     if(enableApp == "Yes"){
     //AND IF ~execMinutes < minSinceLastExec
     
-    def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
-    def presenceElapsed = ((now() - state.presenceTime) / 1000 / 60)
-    def lockElapsed = ((now() - state.lockTime) / 1000 / 60)
+    if(state.contactTime!="pending"){def contactElapsed = ((now() - state.contactTime) / 1000 / 60)}else{contactElapsed="pending"}
+    if(state.presenceTime!="pending"){def presenceElapsed = ((now() - state.presenceTime) / 1000 / 60)}else{presenceElapsed="pending"}
+    if(state.lockTime!="pending"){def lockElapsed = ((now() - state.lockTime) / 1000 / 60)}else{lockElapsed="pending"}
     
         sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $contactElapsed - $lock1 $state.lockLastState $state.lockTime Elapsed: $lockElapsed - $presence1 $state.presenceLastState $state.presenceTime Elapsed: $presenceElapsed")
         //if all monitored devices are in the correct state and time frame
