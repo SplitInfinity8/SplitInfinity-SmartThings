@@ -83,6 +83,7 @@ section("Criteria - When this presence sensor is home (within X minutes)"){
   }
   section("Push notification?"){
         input "sendPushMessage", "enum", title: "Send push notification?", metadata:[values:["Yes", "No"]], required: true, defaultValue: "Yes"
+        input "sendPushTest", "enum", title: "Send test push with info?", metadata:[values:["Yes", "No"]], required: true, defaultValue: "No"
   }
 
 //  section( "Text message?" ) {
@@ -106,13 +107,13 @@ def updated(){
 
 def initialize(){
     //log.debug "Settings: ${settings}"
-    state.lastExecution = "pending"
+    state.lastExecution = null
     state.contactLastState = "pending"
-    state.contactTime = "pending"
+    state.contactTime = null
     state.lockLastState = "pending"
-    state.lockTime = "pending"
+    state.lockTime = null
     state.presenceLastState = "pending"
-    state.presenceTime = "pending"
+    state.presenceTime = null
     subscribe(lock1, "lock", lockHandler, [filterEvents: false])
     subscribe(lock1, "unlock", lockHandler, [filterEvents: false])  
     subscribe(contact1, "contact.open", contactHandler)
@@ -204,12 +205,12 @@ def actionLogic(){
     if(enableApp == "Yes"){
     //AND IF ~execMinutes < minSinceLastExec
     
-    if(state.contactTime>1){
+    if(state.contactTime > 1){
       def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
     }
-//    else{
-//      contactElapsed="pending"
-//    }
+    else{
+      contactElapsed=null
+    }
 //    if(state.presenceTime!="pending"){
 //      def presenceElapsed = ((now() - state.presenceTime) / 1000 / 60)
 //    }
