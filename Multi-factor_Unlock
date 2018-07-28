@@ -37,7 +37,7 @@ section("Criteria - When this presence sensor is home (within X minutes)"){
       input "presencemin", "decimal", title: "Minutes?", defaultValue: "5", required: true
       //radio button - arrived / left?
   }
-  section("Criteria AND - this door / contact sensor opens (within X minutes)"){
+  section("Criteria AND - this contact sensor opens (within X minutes)"){
       input "contact1", "capability.contactSensor", title: "Select Contact", required: false
       input "contactmin", "decimal", title: "Minutes?", defaultValue: "1", required: true
   }
@@ -63,7 +63,7 @@ section("Criteria - When this presence sensor is home (within X minutes)"){
 
   section("Criteria - Prevent duplicate executions"){
     	input "execTimes", "decimal", title: "Execute an action this many times?", defaultValue: "1"
-    	input "limitExecMinutes", "decimal", title: "Within this many minutes?", defaultValue: "5"
+    	input "limitExecMinutes", "decimal", title: "Within this many minutes?", defaultValue: "1"
   }
 
 
@@ -107,18 +107,20 @@ def updated(){
 
 def initialize(){
     //log.debug "Settings: ${settings}"
-    state.lastExecution = null
+    state.lastExecution = 0
     state.contactLastState = "pending"
-    state.contactTime = null
+    state.contactTime = 0
     state.lockLastState = "pending"
-    state.lockTime = null
+    state.lockTime = 0
     state.presenceLastState = "pending"
-    state.presenceTime = null
+    state.presenceTime = 0
     subscribe(lock1, "lock", lockHandler, [filterEvents: false])
     subscribe(lock1, "unlock", lockHandler, [filterEvents: false])  
     subscribe(contact1, "contact.open", contactHandler)
     subscribe(contact1, "contact.closed", contactHandler)
     subscribe(presence1, "presence", presenceHandler)
+    subscribe(motion1, "motion.active", motionHandler)
+    subscribe(motion1, "motion.inactive", motionHandler)
 }
 
 // ****** BEGIN BODY / FUNCTIONS ****** //
@@ -134,38 +136,6 @@ def initialize(){
 //    }
 
 
-def unlockDoor(){
-	log.debug "About to unlock the door."
-	if (lock1.latestValue("lock") == "locked")
-    	{
-    		log.debug "Unlocking $lock1..."
-    		lock1.unlock()
-        	log.debug ("Sending Push Notification...")
-    		if (sendPushMessage != "No") sendPush("$lock1 unlocked! Multi-factor action.")
-    		log.debug("Sending text message...")
-		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 unlocked! Multi-factor action.")        
-        }
-	else if (lock1.latestValue("lock") == "unlocked")
-    	{
-        log.debug "$lock1 was already unlocked..."
-        }
-}
-
-def lockDoor(){
-	if (lock1.latestValue("lock") == "unlocked")
-    	{
-    		log.debug "Locking $lock1..."
-    		lock1.lock()
-        	log.debug ("Sending Push Notification...") 
-    		if (sendPushMessage != "No") sendPush("$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
-    		log.debug("Sending text message...")
-		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
-        }
-	else if (lock1.latestValue("lock") == "locked")
-    	{
-        log.debug "$lock1 was already locked..."
-        }
-}
 
 //Checking elapsed time on a presence sensor...
 //        def threshold = 1000 * 60 * findFalseAlarmThreshold() - 1000
@@ -201,53 +171,61 @@ def lockDoor(){
 */
 
 def actionLogic(){
-    //minSinceLastExec = currentTime - lastExecution
-    if(enableApp == "Yes"){
-    //AND IF ~execMinutes < minSinceLastExec
+    def minSinceLastExec = now() - state.lastExecution
+    if(enableApp == "Yes" && (minSinceLastExec > limitExecMinutes)){
+        //AND IF number of executions < max executions?
     
-    if(state.contactTime > 1){
-      def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
-    }
-    else{
-      contactElapsed=null
-    }
-//    if(state.presenceTime!="pending"){
-//      def presenceElapsed = ((now() - state.presenceTime) / 1000 / 60)
-//    }
-//    else{
-//      presenceElapsed="pending"
-//    }
-//    if(state.lockTime!="pending"){
-//      def lockElapsed = ((now() - state.lockTime) / 1000 / 60)
-//    }
-//    else{
-//      lockElapsed="pending"
-//    }
     
-        sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $contactElapsed - $lock1 $state.lockLastState $state.lockTime Elapsed: $lockElapsed - $presence1 $state.presenceLastState $state.presenceTime Elapsed: $presenceElapsed")
-        //if all monitored devices are in the correct state and time frame
-        //Then do this
-            //Set state.lastExecution = current time
+        //if (contact1.latestValue("contact") == "open")
+ 
+        def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
+        //def contactElapsed = (state.contactTime > 0) ? ((now() - state.contactTime) / 1000 / 60) : null
+       // if(state.contactTime > 0){
+       //   def contactElapsed = ((now() - state.contactTime) / 1000 / 60)
+       // }
+       // else{
+       //   contactElapsed=null
+       // }
+//        if(state.presenceTime!="pending"){
+//          def presenceElapsed = ((now() - state.presenceTime) / 1000 / 60)
+//        }
+//        else{
+//          presenceElapsed="pending"
+//        }
+//        if(state.lockTime!="pending"){
+//          def lockElapsed = ((now() - state.lockTime) / 1000 / 60)
+//        }
+//        else{
+//          lockElapsed="pending"
+//        }
+    
+//          def contactState = $contact1.latestValue("contact")
+    
+          sendPush("action Logic - Contact: $contact1 Last: $state.contactLastState Time: $state.contactTime - Elapsed: $contactElapsed - $lock1 $state.lockLastState $state.lockTime Elapsed: $lockElapsed - $presence1 $state.presenceLastState $state.presenceTime Elapsed: $presenceElapsed")
+          
+	  //if all monitored devices are in the correct state and time frame
+          //Then do this
+          state.lastExecution = now()
     }
 }
 
-//****************EXAMPLE CODE TO STORE TO STATE
-//   	state.contactTime = ${evt.date.time}
-//****************EXAMPLE CODE TO RETRIEVE STATE
-//    if(state.doorClosed == null) {
+
+
 
 def contactHandler(evt){
     //state.contactTime = new Date()
     state.contactTime = evt.date.time
-    if(evt.value == "closed"){
-        state.contactLastState = "closed"
-    }
-    else if(evt.value == "open"){
-        state.contactLastState = "open"
-    }
-    else{
-        state.contactLastState = "unknown"
-    }
+    state.contactLastState = evt.value
+    
+    //if(evt.value == "closed"){
+    //    state.contactLastState = "closed"
+    //}
+    //else if(evt.value == "open"){
+    //    state.contactLastState = "open"
+    //}
+    //else{
+    //    state.contactLastState = "unknown"
+    //}
     actionLogic()
     // get the event name, e.g., "switch"
       //log.debug "This event name is ${evt.name}"
@@ -277,17 +255,18 @@ def presenceHandler(evt) {
     //def elapsed = now() - presenceState.rawDateCreated.time
     //state.presenceTime = presenceState.rawDateCreated.time
     state.presenceTime = evt.rawDateCreated.time
-    if(evt.value == "not present"){
+    state.presenceLastState = evt.value
+    //if(evt.value == "not present"){
 	//state.presenceState = presence1.currentState("presence")
-        state.presenceLastState = "not present"
-    }
-    else if(evt.value == "present"){
+    //    state.presenceLastState = "not present"
+    //}
+    //else if(evt.value == "present"){
 	//presenceState = presence1.currentState("presence")
-	state.contactLastState = "present"
-    }
-    else{
-      state.contactLastState = "unknown"
-    }
+    //    state.contactLastState = "present"
+    //}
+    //else{
+    //  state.contactLastState = "unknown"
+    //}
     actionLogic()
 }
 
@@ -320,6 +299,16 @@ def motionStoppedHandler(evt) {
 // ********************************** //
 
 
+
+
+
+
+
+
+
+
+
+
 // ****** BEGIN NOTES ****** //
 
 /**
@@ -344,3 +333,52 @@ if (all selected monitoring sensors, within each of their time frames){
 ****** END LAYOUT ******
 */
 
+
+
+
+
+//****************EXAMPLE CODE TO STORE TO STATE
+//   	state.contactTime = ${evt.date.time}
+//****************EXAMPLE CODE TO RETRIEVE STATE
+//    if(state.doorClosed == null) {
+
+
+
+
+
+
+
+// ****** ACTION FUNCTIONS ****** //
+
+def unlockDoor(){
+	log.debug "About to unlock the door."
+	if (lock1.latestValue("lock") == "locked")
+    	{
+    		log.debug "Unlocking $lock1..."
+    		lock1.unlock()
+        	log.debug ("Sending Push Notification...")
+    		if (sendPushMessage != "No") sendPush("$lock1 unlocked! Multi-factor action.")
+    		log.debug("Sending text message...")
+		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 unlocked! Multi-factor action.")        
+        }
+	else if (lock1.latestValue("lock") == "unlocked")
+    	{
+        log.debug "$lock1 was already unlocked..."
+        }
+}
+
+def lockDoor(){
+	if (lock1.latestValue("lock") == "unlocked")
+    	{
+    		log.debug "Locking $lock1..."
+    		lock1.lock()
+        	log.debug ("Sending Push Notification...") 
+    		if (sendPushMessage != "No") sendPush("$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
+    		log.debug("Sending text message...")
+		if ((sendText == "Yes") && (phoneNumber != "0")) sendSms(phoneNumber, "$lock1 locked after $contact1 was closed for $minutesLater minute(s)!")
+        }
+	else if (lock1.latestValue("lock") == "locked")
+    	{
+        log.debug "$lock1 was already locked..."
+        }
+}
